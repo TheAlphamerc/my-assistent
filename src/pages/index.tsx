@@ -1,18 +1,16 @@
+import { useUser } from "@auth0/nextjs-auth0/client";
 import Image from "next/image";
 import { Inter } from "next/font/google";
 import Head from "next/head";
-import FileUploadArea from "@/component/FileUploadArea";
-import FileQandAArea from "@/component/FileQandAArea";
-import { useState } from "react";
-import { FileLite } from "@/types/file";
 import { Button } from "@/component/button";
 import Link from "next/link";
-import StartDotPattern from "@/component/pattern/startDotPattern";
 import NavbarLayout from "@/component/layout/navLayout";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export default function Home() {
+  const { user, error, isLoading } = useUser();
+
   return (
     <div className="flex items-left text-left h-screen flex-col">
       <Head>
@@ -20,9 +18,17 @@ export default function Home() {
       </Head>
       <NavbarLayout
         trailing={
-          <Button variant={"outline"}>
-            <Link href="create">Create Your Chatbot Now</Link>
-          </Button>
+          user ? (
+            <>
+              <Button variant={"outline"}>
+                <Link href="/create">Account</Link>
+              </Button>
+            </>
+          ) : (
+            <Button variant={"outline"}>
+              <Link href="/api/auth/login">Create Your Chatbot Now</Link>
+            </Button>
+          )
         }
       />
       <div className="flex flex-col items-center max-w-5xl mx-auto m-24 space-y-8 text-gray-800">
@@ -33,7 +39,7 @@ export default function Home() {
           relevant documents.
         </div>
         <Button variant={"default"}>
-          <Link href={"/create"}>Create you assistant</Link>
+          <Link href={"/api/auth/login"}>Create you assistant</Link>
         </Button>
         <HowItWorks />
       </div>
