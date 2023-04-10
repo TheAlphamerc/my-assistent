@@ -16,6 +16,7 @@ import { FileLite } from "../types/file";
 import FileViewerList from "./FileViewerList";
 import extractTextFromFile from "@/services/extractTextFromFile";
 import { Button } from "./button";
+import { useUser } from "@auth0/nextjs-auth0/client";
 
 type FileUploadAreaProps = {
   handleSetFiles: Dispatch<SetStateAction<FileLite[]>>;
@@ -26,15 +27,23 @@ type FileUploadAreaProps = {
 function FileUploadArea(props: FileUploadAreaProps) {
   const handleSetFiles = props.handleSetFiles;
 
+  const { user, isLoading } = useUser();
+  const userId = user?.sid;
+
   const [files, setFiles] = useState<FileLite[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const dropzoneRef = useRef<HTMLLabelElement>(null);
 
+  const uploadAPIUrl = "http://127.0.0.1:5000/train_file";
   const handleFileChange = useCallback(
     async (selectedFiles: FileList | null) => {
+      if (!userId) {
+        return;
+      }
       console.log("handleFileChange", selectedFiles);
+
       if (selectedFiles && selectedFiles.length > 0) {
         setError("");
 
@@ -66,12 +75,12 @@ function FileUploadArea(props: FileUploadAreaProps) {
 
               const formData = new FormData();
               formData.append("file", file);
-              formData.append("filename", file.name);
+              formData.append("id", userId as string);
 
               try {
                 console.log("Sending file to server", formData);
                 const processFileResponse = await axios.post(
-                  "/api/process-file",
+                  uploadAPIUrl,
                   formData,
                   {
                     headers: {
@@ -143,7 +152,7 @@ function FileUploadArea(props: FileUploadAreaProps) {
         console.log("no files selected");
       }
     },
-    [files, handleSetFiles, props.maxFileSizeMB, props.maxNumFiles]
+    [files, handleSetFiles, props.maxFileSizeMB, props.maxNumFiles, userId]
   );
 
   const handleDragEnter = useCallback((event: React.DragEvent) => {

@@ -4,6 +4,7 @@ import formidable, { Fields, Files } from "formidable"; // to handle file upload
 import { TextEmbedding } from "../../types/file";
 import extractTextFromFile from "../../services/extractTextFromFile";
 import { createEmbeddings } from "../../services/createEmbeddings";
+import { pineconeClient } from "@/services/pinecone/pinecone";
 
 // Disable the default body parser to handle file uploads
 export const config = { api: { bodyParser: false } };
@@ -57,6 +58,38 @@ export default async function handler(
     const { meanEmbedding, chunks } = await createEmbeddings({
       text,
     });
+
+    var vector = [];
+    for (var i = 0; i < chunks.length; i++) {
+      vector.push({
+        id: file.filepath
+      });
+    }
+
+    const pinecone = await pineconeClient();
+    const index = pinecone.Index("pensil-ai");
+    const upsertResponse = await index.upsert({
+      upsertRequest: {
+        vectors: [
+          {
+            id: "vec1",
+            values: [0.1, 0.2, 0.3, 0.4],
+            metadata: {
+              genre: "drama",
+            },
+          },
+          {
+            id: "vec2",
+            values: [0.1, 0.2, 0.3, 0.4],
+            metadata: {
+              genre: "comedy",
+            },
+          },
+        ],
+        namespace: "example-namespace",
+      },
+    });
+
 
     res.status(200).json({ text, meanEmbedding, chunks });
   } catch (error: any) {

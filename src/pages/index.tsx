@@ -5,11 +5,14 @@ import Head from "next/head";
 import { Button } from "@/component/button";
 import Link from "next/link";
 import NavbarLayout from "@/component/layout/navLayout";
+import cx from "classnames";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export default function Home() {
   const { user, error, isLoading } = useUser();
+
+  const authRedirect = user ? "/dashboard" : "/api/auth/login";
 
   return (
     <div className="flex items-left text-left h-screen flex-col">
@@ -18,17 +21,20 @@ export default function Home() {
       </Head>
       <NavbarLayout
         trailing={
-          user ? (
-            <>
-              <Button variant={"outline"}>
-                <Link href="/create">Account</Link>
-              </Button>
-            </>
-          ) : (
-            <Button variant={"outline"}>
-              <Link href="/api/auth/login">Create Your Chatbot Now</Link>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={"ghost"}
+              className={cx("", {
+                hidden: !user,
+              })}
+            >
+              {/* @ts-ignore */}
+              <Link href={`assistant/${user?.sid}`}>My Bots</Link>
             </Button>
-          )
+            <Button variant={"ghost"}>
+              <Link href={authRedirect}>{user ? "Account" : "Login"}</Link>
+            </Button>
+          </div>
         }
       />
       <div className="flex flex-col items-center max-w-5xl mx-auto m-24 space-y-8 text-gray-800">
@@ -39,7 +45,7 @@ export default function Home() {
           relevant documents.
         </div>
         <Button variant={"default"}>
-          <Link href={"/api/auth/login"}>Create you assistant</Link>
+          <Link href={authRedirect}>Create you assistant</Link>
         </Button>
         <HowItWorks />
       </div>

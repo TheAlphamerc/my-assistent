@@ -1,5 +1,6 @@
 import { IncomingMessage } from "http";
 import {
+  ChatCompletionRequestMessage,
   ChatCompletionRequestMessageRoleEnum,
   Configuration,
   CreateChatCompletionResponse,
@@ -118,6 +119,8 @@ export async function* completionStream({
             // @ts-ignore
             if (data.choices[0].delta?.content) {
               // @ts-ignore
+              console.log("\n\n OpenAI Response: ", data.choices[0].delta?.content);
+              // @ts-ignore
               yield data.choices[0].delta?.content;
             }
           } catch (error) {
@@ -128,6 +131,44 @@ export async function* completionStream({
     }
   } catch (error) {
     if (fallback) yield fallback;
+    else throw error;
+  }
+}
+
+type OpenAICompletionOptions = Partial<CreateCompletionRequest> & {
+  messages: ChatCompletionRequestMessage[];
+  fallback?: string;
+};
+
+export async function openAiCompletion({
+  messages,
+  fallback,
+  max_tokens = 800,
+  temperature = 0,
+  model = "gpt-3.5-turbo", // use gpt-4 for better results
+}: OpenAICompletionOptions) {
+  try {
+    // Note: this is not the proper way to use the ChatGPT conversational format, but it works for now
+
+    const result = await openai.createChatCompletion({
+      model,
+      messages,
+      temperature,
+      max_tokens: max_tokens ?? 800,
+    });
+
+    if (!result.data.choices[0].message) {
+      throw new Error("No text returned from completions endpoint");
+    }
+    return {
+      message: result.data.choices[0].message.content,
+      usage: result.data.usage,
+    };
+  } catch (error) {
+    if (fallback) return {
+      message: fallback,
+      usage: 0,
+    };
     else throw error;
   }
 }

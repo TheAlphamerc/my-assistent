@@ -3,16 +3,19 @@ import cx from "classnames";
 type Props = {
   className?: string;
   size?: number;
+  color?: string;
 };
 
 export default function LoadingSpinner(props: Props) {
   const size = props.size || 5;
+  const color = props.color || "fill-black";
   return (
     <div className={cx("flex flex-row", props.className)}>
       <svg
         aria-hidden="true"
         className={cx(
-          "mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-black stroke-1",
+          "mr-2 text-gray-200 animate-spin dark:text-gray-600 stroke-1",
+          color,
           `w-${size} h-${size}`
         )}
         viewBox="0 0 100 101"

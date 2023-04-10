@@ -12,6 +12,7 @@ import cx from "classnames";
 import FileViewerList from "@/component/FileViewerList";
 import NavbarLayout from "@/component/layout/navLayout";
 import { useUser } from "@auth0/nextjs-auth0/client";
+import GoBackButton from "@/component/atom/go-back-button";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -45,8 +46,10 @@ export default function Z() {
           </Button>
         }
       />
-
       <div className="flex flex-col items-center max-w-5xl mx-auto m-24 space-y-8 text-gray-800">
+        <div className=" w-full my-8">
+          <GoBackButton />
+        </div>
         <h1 className="text-4xl">Create Assistant using Assistant AI </h1>
         <div className="text-center max-w-xl">
           To search for answers from the content in your files, upload them here

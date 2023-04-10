@@ -1,9 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import formidable, { Fields, Files } from "formidable"; // to handle file uploads
-
-import { TextEmbedding } from "../../types/file";
 import extractTextFromFile from "../../services/extractTextFromFile";
-import { createEmbeddings } from "../../services/createEmbeddings";
 
 // Disable the default body parser to handle file uploads
 export const config = { api: { bodyParser: false } };
@@ -47,15 +44,10 @@ export default async function handler(
             res.status(400).json({ error: "Invalid or missing file" });
             return;
         }
-
         const text = await extractTextFromFile({
             filepath: file.filepath,
             filetype: file.mimetype ?? "",
         });
-
-        // const { meanEmbedding, chunks } = await createEmbeddings({
-        //     text,
-        // });
 
         res.status(200).json({ text, length: text.length });
     } catch (error: any) {

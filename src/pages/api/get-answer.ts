@@ -1,10 +1,9 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
-import { setCookie } from '@/lib/cookies'
-import { createEmbeddings } from '@/services/createEmbeddings'
-import { completion, openAiCompletion } from '@/services/openai'
-import { fetchFromPinecone, getIndexesList, getPineconeIndex, pineconeClient, queryPinecone } from '@/services/pinecone/pinecone'
-import type { NextApiRequest, NextApiResponse } from 'next'
-import { ChatCompletionRequestMessageRoleEnum } from 'openai'
+import type { NextApiRequest, NextApiResponse } from "next";
+
+import { completionStream, openAiCompletion } from "../../services/openai";
+import { createEmbeddings } from "@/services/createEmbeddings";
+import { ChatCompletionRequestMessageRoleEnum } from "openai";
+import { pineconeClient } from "@/services/pinecone/pinecone";
 
 type Data = {
   answer?: string | null | undefined
@@ -58,11 +57,10 @@ export default async function handler(
     });
     // console.log("\nPinecone response: ", response);
     var textString = '';
-    if (response.matches) {
+    if (response.matches && response.matches.length > 0) {
       console.log("\n🚥 Pinecone matches length: ", response.matches.length);
       for (let i = 0; i < response.matches.length; i++) {
         const result = response.matches[i]
-        const fileChunkId = result.id
         const score = result.score ?? 0
         // @ts-ignore
         var filename = result?.metadata["filename"] ?? '';
@@ -75,18 +73,11 @@ export default async function handler(
         console.log("\n🚥 Match: ", i, ': ', file);
         textString += file
       }
+    } else {
+      console.log("\n🚥 No matches found");
+      res.status(200).json({ answer: "Sorry, I don't have an answer for that." });
+      return;
     }
-
-
-    const prompt =
-      `You are Pensil AI assistant, designed to answer the question about Pensil community Platform.\n` +
-      `You can answer questions about Pensil and its features by giving Answer to the question based on the context given below.\n\n` +
-      `Context: ${textString} \n\n` +
-      `Try to answer answer the question from given context as concisely as possible,\n` +
-      `If you cannot answer, or find a relevant file, then simply apologies and tell why can't you give answer .\n` +
-      `You can also suggest to contact at support@pensil.in. \n\n` +
-      `Question: ${question} ?\n` +
-      `Answer (in markdown):`
 
     const messages = [
       {
@@ -106,7 +97,7 @@ export default async function handler(
       },
       {
         role: ChatCompletionRequestMessageRoleEnum.System,
-        content: 'Don\'t mention the source text file name in the answer.'
+        content: 'Mention the source text file name in the answer.'
       },
       {
         role: ChatCompletionRequestMessageRoleEnum.User,

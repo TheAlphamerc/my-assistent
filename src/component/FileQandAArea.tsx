@@ -1,60 +1,88 @@
-import React, { memo, useCallback, useRef, useState } from "react";
-import cx from "classnames";
+import { Transition } from "@headlessui/react";
 import axios from "axios";
+import React, { memo, useCallback, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
-import FileViewerList from "./FileViewerList";
-import LoadingText from "./LoadingText";
-import { isFileNameInString } from "../services/utils";
 import { FileChunk, FileLite } from "../types/file";
+import LoadingText from "./LoadingText";
+import BotIcon from "./svg-icon/bot-icon";
+import UserIcon from "./svg-icon/user-icon";
+
+type Conversation = {
+  userQuery?: string;
+  assistant?: string;
+  time?: string;
+};
 
 type FileQandAAreaProps = {
   files: FileLite[];
+  label?: string;
+  placeholder?: string;
+  trainedDoc?: string;
 };
 
 function FileQandAArea(props: FileQandAAreaProps) {
-  const questionRef = useRef(null);
-  const [hasAskedQuestion, setHasAskedQuestion] = useState(false);
+  const searchBarRef = useRef(null);
+  const formRef = useRef(null);
+  const listRef = useRef(null);
   const [answerError, setAnswerError] = useState("");
-  const [answerLoading, setAnswerLoading] = useState<boolean>(false);
-  const [answer, setAnswer] = useState("");
-  const [answerDone, setAnswerDone] = useState(false);
+  const [searchResultsLoading, setSearchResultsLoading] =
+    useState<boolean>(false);
+  console.log("props", { id: process.env.NEXT_PUBLIC_PINECONE_NAMESPACE });
+
+  const [conversation, setConversation] = useState<Array<Conversation>>([]);
 
   const handleSearch = useCallback(async () => {
-    if (answerLoading) {
+    if (searchResultsLoading) {
       return;
     }
 
-    const question = (questionRef?.current as any)?.value ?? "";
-    setAnswer("");
-    setAnswerDone(false);
+    const question = (searchBarRef?.current as any)?.value ?? "";
+    // Clear search bar
 
     if (!question) {
-      setAnswerError("Please ask a question.");
       return;
+    } else if (props.trainedDoc) {
+      setAnswerError("Sorry, something went wrong!, Please contact the admin");
     }
-    if (props.files.length === 0) {
-      setAnswerError("Please upload files before asking a question.");
-      return;
-    }
+    setSearchResultsLoading(true);
+    const time = new Date().toLocaleTimeString();
+    var list = Array.from(conversation);
 
-    setAnswerLoading(true);
+    list.push({
+      userQuery: question,
+      time: time,
+    });
+    setConversation(list);
+    window.scroll({
+      top: document.body.offsetHeight,
+      left: 0,
+      behavior: "smooth",
+    });
     setAnswerError("");
 
-    let results: FileChunk[] = [];
-
     try {
-      const searchResultsResponse = await axios.post(
-        "/api/search-file-chunks",
-        {
-          searchQuery: question,
-          files: props.files,
-          maxResults: 10,
-        }
-      );
+      const answerResponse = await axios.post(`/api/get-answer`, {
+        question,
+        trainedDoc: props.trainedDoc,
+      });
 
-      if (searchResultsResponse.status === 200) {
-        results = searchResultsResponse.data.searchResults;
+      if (answerResponse.status === 200) {
+        const answer = answerResponse.data.answer;
+        const index = list.findIndex((item) => item.time === time);
+        list[index] = {
+          userQuery: question,
+          assistant: answer,
+          time: time,
+        };
+
+        setConversation(list);
+        window.scroll({
+          top: document.body.offsetHeight,
+          left: 0,
+          behavior: "smooth",
+        });
+        (searchBarRef?.current as any).value = "";
       } else {
         setAnswerError("Sorry, something went wrong!");
       }
@@ -62,38 +90,8 @@ function FileQandAArea(props: FileQandAAreaProps) {
       setAnswerError("Sorry, something went wrong!");
     }
 
-    setHasAskedQuestion(true);
-
-    const res = await fetch("/api/get-answer-from-files", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        question,
-        fileChunks: results,
-      }),
-    });
-
-    if (res.status === 500) {
-      setAnswerError("Internal server error. Please try again later.");
-      setAnswerLoading(false);
-      return;
-    }
-
-    const reader = res.body!.getReader();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        setAnswerDone(true);
-        break;
-      }
-      setAnswer((prev) => prev + new TextDecoder().decode(value));
-    }
-
-    setAnswerLoading(false);
-  }, [props.files, answerLoading]);
+    setSearchResultsLoading(false);
+  }, [conversation, props.trainedDoc, searchResultsLoading]);
 
   const handleEnterInSearchBar = useCallback(
     async (event: React.SyntheticEvent) => {
@@ -105,63 +103,157 @@ function FileQandAArea(props: FileQandAAreaProps) {
   );
 
   return (
-    <div className="space-y-4 text-gray-800">
-      <div className="mt-2">
-        Ask a question based on the content of your files:
+    <div className="QAArea flex flex-col h-full w-full text-gray-800   rounded-lg">
+      <div className="sticky top-0 p-2 border-b bg-white z-10">
+        {props.label ?? "Ask a question based on the content of your files:"}
       </div>
-      <div className="space-y-2">
-        <input
-          className="border rounded border-gray-200 w-full py-1 px-2"
-          placeholder="e.g. What were the key takeaways from the Q1 planning meeting?"
-          name="search"
-          ref={questionRef}
-          onKeyDown={handleEnterInSearchBar}
-        />
+
+      {/* ANSWERS */}
+      <div className="flex-1">
         <div
-          className="rounded-md bg-gray-50 py-1 px-4 w-max text-gray-500 hover:bg-gray-100 border border-gray-100 shadow cursor-pointer"
-          onClick={handleSearch}
+          ref={listRef}
+          className="flex flex-col gap-6 h-full overflow-y-auto p-4 prose prose-sm pb-8"
         >
-          {answerLoading ? (
-            <LoadingText text="Answering question..." />
-          ) : (
-            "Ask question"
-          )}
-        </div>
-      </div>
-      <div className="">
-        {answerError && <div className="text-red-500">{answerError}</div>}
-        <div
-          className={cx("mb-8", {
-            hidden: !hasAskedQuestion,
-          })}
-        >
-          {answer && (
-            <div className="">
-              <ReactMarkdown className="prose" linkTarget="_blank">
-                {`${answer}${answerDone ? "" : "  |"}`}
-              </ReactMarkdown>
+          {answerError && (
+            <div className="text-red-400 p-4 border  mt-4 border-red-300 shadow bg-white rounded">
+              {answerError}
             </div>
           )}
-
-          <div
-            className={cx("mb-8", {
-              hidden:
-                props.files.filter((file) =>
-                  isFileNameInString(file.name, answer)
-                ).length > 0,
-            })}
-          >
-            <FileViewerList
-              files={props.files.filter((file) =>
-                isFileNameInString(file.name, answer)
-              )}
-              title="Sources"
-              listExpanded={true}
-            />
-          </div>
+          <Assistant
+            conversation={{
+              assistant: "Hello! How can I assist you today?",
+            }}
+          />
+          {conversation.map((conversation, index) => (
+            <div key={index} className=" bg-slate-100 flex flex-col gap-6 ">
+              <User conversation={conversation} />
+              <Assistant conversation={conversation} />
+            </div>
+          ))}
         </div>
       </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSearch();
+        }}
+        ref={formRef}
+        className="sticky bottom-0 bg-white py-2 flex items-center px-2 border-t"
+      >
+        <input
+          required
+          className=" rounded border-gray-200 py-1 px-2 w-full bg-transparent placeholder:text-gray-500 text-gray-900 text-sm font-light focus:outline-none"
+          placeholder={
+            props.placeholder ??
+            "e.g. Hi, I am Pensil AI assistant, ask me anything about Pensil!"
+          }
+          name="search"
+          ref={searchBarRef}
+          onKeyDown={handleEnterInSearchBar}
+        />
+        <SendButton
+          formRef={formRef}
+          searchResultsLoading={searchResultsLoading}
+        />
+      </form>
     </div>
+  );
+}
+
+function SendButton({
+  formRef,
+  searchResultsLoading,
+}: {
+  formRef: React.RefObject<HTMLFormElement>;
+  searchResultsLoading: boolean;
+}) {
+  return (
+    <div className="flex flex-col place-content-between">
+      <div
+        className={`rounded-md bg-[#0445fe] py-1 px-4 w-max text-white hover:bg-[#0447fedf] border   ${
+          searchResultsLoading ? "cursor-not-allowed" : "cursor-pointer"
+        }`}
+        onClick={(e) => {
+          if (!searchResultsLoading) {
+            (formRef?.current as any)?.requestSubmit();
+          }
+        }}
+      >
+        {searchResultsLoading ? (
+          <LoadingText spinnerColor="fill-white" text="Thinking.." />
+        ) : (
+          "Ask"
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Assistant({ conversation }: { conversation: Conversation }) {
+  return (
+    <TransitionWrapper
+      show={
+        conversation.assistant != null && conversation.assistant != undefined
+      }
+    >
+      <div className={`flex  gap-2 ${!conversation.assistant && "hidden"}`}>
+        <div
+          className="h-8 w-8 shrink-0 overflow-hidden rounded-xl text-white p-1.5"
+          style={{ background: "#0445fe" }}
+        >
+          <BotIcon />
+        </div>
+        <span className="">
+          <ReactMarkdown
+            className="Markdown pose pose-sm list-disc list-inside"
+            linkTarget="_blank"
+          >
+            {conversation.assistant ?? ""}
+          </ReactMarkdown>
+        </span>
+      </div>
+    </TransitionWrapper>
+  );
+}
+
+function User({ conversation }: { conversation: Conversation }) {
+  return (
+    <TransitionWrapper
+      show={
+        conversation.userQuery != null && conversation.userQuery != undefined
+      }
+    >
+      <div className={`flex  gap-2 `}>
+        <div className="flex items-center h-8 w-8 rounded-full text-white">
+          <UserIcon />
+        </div>
+        <ReactMarkdown className="" linkTarget="_blank">
+          {conversation.userQuery ?? ""}
+        </ReactMarkdown>
+      </div>
+    </TransitionWrapper>
+  );
+}
+
+function TransitionWrapper({
+  children,
+  show,
+}: {
+  children: React.ReactNode;
+  show: boolean;
+}) {
+  return (
+    <Transition
+      show={show}
+      enter="transition duration-600 ease-out"
+      enterFrom="transform opacity-0"
+      enterTo="transform opacity-100"
+      leave="transition duration-125 ease-out"
+      leaveFrom="transform opacity-100"
+      leaveTo="transform opacity-0"
+    >
+      {children}
+    </Transition>
   );
 }
 
