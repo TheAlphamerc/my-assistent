@@ -1,4 +1,4 @@
-import FileQandAArea from "@/component/FileQandAArea";
+import ChatArea from "@/component/ChatArea";
 import { useRouter } from "next/router";
 
 import React from "react";
@@ -31,7 +31,7 @@ export default function Assistant() {
       <div className=" w-[400px] mx-auto">
         <GoBackButton />
       </div>
-      <div className="h-[550px] w-[400px] mx-auto border rounded">
+      <div className="h-[550px] w-[400px] mx-auto border rounded  overflow-hidden">
         <Bot id={process.env.NEXT_PUBLIC_PINECONE_NAMESPACE} />
       </div>
     </div>

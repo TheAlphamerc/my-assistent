@@ -2,7 +2,7 @@ import Image from "next/image";
 import { Inter } from "next/font/google";
 import Head from "next/head";
 import FileUploadArea from "@/component/FileUploadArea";
-import FileQandAArea from "@/component/FileQandAArea";
+import ChatArea from "@/component/ChatArea";
 import { useEffect, useState } from "react";
 import { FileLite } from "@/types/file";
 import { Button } from "@/component/button";

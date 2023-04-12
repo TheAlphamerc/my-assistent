@@ -3,7 +3,7 @@ import axios from "axios";
 import React, { memo, useCallback, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
-import { FileChunk, FileLite } from "../types/file";
+import { FileLite } from "../types/file";
 import LoadingText from "./LoadingText";
 import BotIcon from "./svg-icon/bot-icon";
 import UserIcon from "./svg-icon/user-icon";
@@ -21,7 +21,7 @@ type FileQandAAreaProps = {
   trainedDoc?: string;
 };
 
-function FileQandAArea(props: FileQandAAreaProps) {
+function ChatArea(props: FileQandAAreaProps) {
   const searchBarRef = useRef(null);
   const formRef = useRef(null);
   const listRef = useRef(null);
@@ -109,7 +109,7 @@ function FileQandAArea(props: FileQandAAreaProps) {
       </div>
 
       {/* ANSWERS */}
-      <div className="flex-1">
+      <div className="flex-1 overflow-y-scroll">
         <div
           ref={listRef}
           className="flex flex-col gap-6 h-full overflow-y-auto p-4 prose prose-sm pb-8"
@@ -257,4 +257,4 @@ function TransitionWrapper({
   );
 }
 
-export default memo(FileQandAArea);
+export default memo(ChatArea);

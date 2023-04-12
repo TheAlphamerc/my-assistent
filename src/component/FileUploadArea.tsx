@@ -36,7 +36,9 @@ function FileUploadArea(props: FileUploadAreaProps) {
   const [dragOver, setDragOver] = useState(false);
   const dropzoneRef = useRef<HTMLLabelElement>(null);
 
-  const uploadAPIUrl = "http://127.0.0.1:5000/train_file";
+  // const uploadAPIUrl = "http://127.0.0.1:5000/train_file";
+  const uploadAPIUrl =
+    "https://open-bot-server-thealphamerc.vercel.app/train_file";
   const handleFileChange = useCallback(
     async (selectedFiles: FileList | null) => {
       if (!userId) {

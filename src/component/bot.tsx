@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import FileQandAArea from "./FileQandAArea";
+import ChatArea from "./ChatArea";
 
 interface Prop {
   id?: string;
@@ -31,8 +31,8 @@ export default function Bot(props: Prop) {
   }
   return (
     <div className="Assistant flex flex-col h-full rounded-3xl min-h-full">
-      <div className="bg-slate-100 grid min-h-full place-items-end lg:place-items-center">
-        <FileQandAArea
+      <div className="bg-slate-100 place-items-end lg:place-items-center h-full">
+        <ChatArea
           files={[]}
           label={props.label ?? "Pensil AI Assistant"}
           placeholder={props.placeholder ?? "Ask me anything about Pensil"}

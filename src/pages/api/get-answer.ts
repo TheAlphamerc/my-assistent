@@ -82,19 +82,27 @@ export default async function handler(
     const messages = [
       {
         role: ChatCompletionRequestMessageRoleEnum.System,
-        content: 'You are a Pensil chatbot designed to assist customers with any questions or concerns they may have about our Pensil community Platform.',
+        content: 'I want you to act as a document that I am having a conversation with. Your name is "AI Assistant"',
       }, {
         role: ChatCompletionRequestMessageRoleEnum.System,
-        content: 'Your goal is to provide helpful, accurate information to customers in a friendly and efficient manner from context given below. You should be able to quickly understand the nature of their question or issue, and provide the best answer possible.',
+        content: 'You will provide me with answers from the given info. If the answer is not included, say exactly "Hmm, I am not sure." and stop after that'
       },
+      {
+        role: ChatCompletionRequestMessageRoleEnum.System,
+        content: 'Refuse to answer any question not about the context given below.'
+      },
+      //  {
+      //   role: ChatCompletionRequestMessageRoleEnum.System,
+      //   content: 'Your goal is to provide helpful, accurate information to customers in a friendly and efficient manner from context given below. You should be able to quickly understand the nature of their question or issue, and provide the best answer possible.',
+      // },
       {
         role: ChatCompletionRequestMessageRoleEnum.System,
         content: `Context: ${textString}`,
       },
-      {
-        role: ChatCompletionRequestMessageRoleEnum.System,
-        content: 'If you cannot answer, or find a relevant file, don\'t makeup answer just simply apologies and tell why can\'t you give answer. ou can also suggest to contact at support@pensil.in',
-      },
+      // {
+      //   role: ChatCompletionRequestMessageRoleEnum.System,
+      //   content: 'If you cannot answer, or find a relevant file, don\'t makeup answer just simply apologies and tell why can\'t you give answer. ou can also suggest to contact at support@pensil.in',
+      // },
       {
         role: ChatCompletionRequestMessageRoleEnum.System,
         content: 'Mention the source text file name in the answer.'
