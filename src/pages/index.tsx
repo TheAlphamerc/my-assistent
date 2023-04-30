@@ -18,6 +18,45 @@ export default function Home() {
     <div className="flex items-left text-left h-screen flex-col">
       <Head>
         <title>Assistant AI</title>
+        <meta name="title" content="Pulse " />
+        <meta
+          name="description"
+          content="Create Assistant using Assistant AI. "
+        />
+
+        <meta name="keywords" content="AI Assistant, Chatbot, " />
+        <meta name="robots" content="index, follow" />
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="language" content="English" />
+        <meta name="revisit-after" content="5 days" />
+        <meta name="author" content="Sonu Sharma" />
+
+        {/* <!-- Open Graph / Facebook --> */}
+        <meta property="og:type" content="website" />
+        <meta
+          property="og:url"
+          content="https://my-assistant-blush.vercel.app/"
+        />
+        <meta property="og:title" content="Pulse " />
+        <meta
+          property="og:description"
+          content="Create Assistant using Assistant AI"
+        />
+        <meta property="og:image" content="" />
+
+        {/* <!-- Twitter --> */}
+        <meta name="twitter:site" content="" />
+        <meta property="twitter:card" content="summary" />
+        <meta
+          property="twitter:url"
+          content="hhttps://my-assistant-blush.vercel.app/"
+        />
+        <meta property="twitter:title" content="Pulse " />
+        <meta
+          property="twitter:description"
+          content="Create Assistant using Assistant AI"
+        />
+        <meta property="twitter:image" content="" />
       </Head>
       <NavbarLayout
         trailing={
