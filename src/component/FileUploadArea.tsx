@@ -119,6 +119,7 @@ function FileUploadArea(props: FileUploadAreaProps) {
                     headers: {
                       "Content-Type": "multipart/form-data",
                     },
+                    timeout: 1000 * 140,
                   }
                 );
 

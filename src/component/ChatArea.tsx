@@ -70,7 +70,9 @@ function ChatArea(props: FileQandAAreaProps) {
         trainedDoc: props.trainedDoc,
         persona: props.bot.persona,
       };
-      const answerResponse = await axios.post(`/api/get-answer`, payload);
+      const answerResponse = await axios.post(`/api/get-answer`, payload, {
+        timeout: 1000 * 120,
+      });
 
       if (answerResponse.status === 200) {
         const answer = answerResponse.data.answer;
