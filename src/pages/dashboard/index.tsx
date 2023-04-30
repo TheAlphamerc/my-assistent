@@ -15,23 +15,9 @@ import { useUser } from "@auth0/nextjs-auth0/client";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export default function Z() {
+export default function Dashboard() {
   const [files, setFiles] = useState<FileLite[]>([]);
   const { user, error, isLoading } = useUser();
-
-  useEffect(() => {
-    (async () => {
-      const res = await fetch("/api/protected-api");
-
-      const data = await res.json();
-
-      if (res.status === 401) {
-        console.log("You are not authorized to access this API");
-      } else {
-        console.log(data);
-      }
-    })();
-  }, []);
 
   return (
     <div className="flex items-left text-left h-screen flex-col">
@@ -61,7 +47,8 @@ export default function Z() {
           </Button>
           <Button variant={"ghost"} className="flex-1 rounded h-20  m-2 border">
             <Link
-              href={`assistant/${user?.sid}`}
+              // href={`assistant/${user?.sid}`}
+              href={`dashboard/my-bots`}
               className="flex-1 flex items-center place-content-center   rounded h-20 w-14"
             >
               <div>

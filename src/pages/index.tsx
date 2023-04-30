@@ -29,7 +29,7 @@ export default function Home() {
               })}
             >
               {/* @ts-ignore */}
-              <Link href={`assistant/${user?.sid}`}>My Bots</Link>
+              <Link href={"dashboard/my-bots"}>My Bots</Link>
             </Button>
             <Button variant={"ghost"}>
               <Link href={authRedirect}>{user ? "Account" : "Login"}</Link>
@@ -45,7 +45,7 @@ export default function Home() {
           relevant documents.
         </div>
         <Button variant={"default"}>
-          <Link href={authRedirect}>Create you assistant</Link>
+          <Link href={authRedirect}>Create your assistant</Link>
         </Button>
         <HowItWorks />
       </div>

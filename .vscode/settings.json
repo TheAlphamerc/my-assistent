@@ -2,5 +2,5 @@
   "tailwindCSS.experimental.classRegex": [
     ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
   ],
-  "cSpell.words": ["loadash"]
+  "cSpell.words": ["headlessui", "loadash", "uuidv"]
 }

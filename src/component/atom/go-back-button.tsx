@@ -1,4 +1,5 @@
 import React from "react";
+import cx from "classnames";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useRouter } from "next/router";
 import { Button } from "../button";
@@ -6,12 +7,12 @@ import { Button } from "../button";
  * Go back button
  */
 
-export default function GoBackButton() {
+export default function GoBackButton({ className }: { className?: string }) {
   const router = useRouter();
   return (
     <Button
       variant={"ghost"}
-      className="flex items-center gap-2"
+      className={cx("flex items-center gap-2 max-w-fit", className)}
       onClick={() => {
         router.back();
       }}

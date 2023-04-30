@@ -5,6 +5,7 @@ import React, {
   useState,
   memo,
   useRef,
+  useEffect,
 } from "react";
 import cx from "classnames";
 import axios from "axios";
@@ -16,32 +17,52 @@ import { FileLite } from "../types/file";
 import FileViewerList from "./FileViewerList";
 import extractTextFromFile from "@/services/extractTextFromFile";
 import { Button } from "./button";
-import { useUser } from "@auth0/nextjs-auth0/client";
+import { UserProfile, useUser } from "@auth0/nextjs-auth0/client";
+import { Input } from "./atom/inout";
+import { Textarea } from "./atom/textarea";
+import { useRouter } from "next/router";
 
 type FileUploadAreaProps = {
   handleSetFiles: Dispatch<SetStateAction<FileLite[]>>;
   maxNumFiles: number;
   maxFileSizeMB: number;
+  bot?: any;
 };
 
 function FileUploadArea(props: FileUploadAreaProps) {
   const handleSetFiles = props.handleSetFiles;
 
   const { user, isLoading } = useUser();
-  const userId = user?.sid;
+  const router = useRouter();
 
+  const [botId, setBotId] = useState("");
   const [files, setFiles] = useState<FileLite[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const dropzoneRef = useRef<HTMLLabelElement>(null);
+  const botNameRef = useRef<HTMLInputElement>(null);
+  const botDescriptionRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (props.bot) {
+      setBotId(props.bot.botId);
+      botNameRef.current!.value = props.bot.botName;
+      botDescriptionRef.current!.value = props.bot.persona;
+    }
+  }, [props.bot]);
 
   // const uploadAPIUrl = "http://127.0.0.1:5000/train_file";
   const uploadAPIUrl =
     "https://open-bot-server-thealphamerc.vercel.app/train_file";
+
   const handleFileChange = useCallback(
     async (selectedFiles: FileList | null) => {
-      if (!userId) {
+      if (!user) {
+        console.log("User not logged in");
+        return;
+      } else if (!botNameRef.current?.value) {
+        console.log("Bot name is not set");
         return;
       }
       console.log("handleFileChange", selectedFiles);
@@ -60,6 +81,16 @@ function FileUploadArea(props: FileUploadAreaProps) {
         console.log("Initiate Upload");
         setLoading(true);
 
+        // const botId = botId ??  await generateBotId(user);
+        // if (!botId) {
+        //   console.error("Error generating bot id");
+        //   return;
+        // }
+        let tempBotId = botId;
+        if (!tempBotId) {
+          tempBotId = await generateBotId(user);
+        }
+
         const uploadedFiles = await Promise.all(
           Array.from(selectedFiles).map(async (file) => {
             // Check the file type
@@ -77,7 +108,7 @@ function FileUploadArea(props: FileUploadAreaProps) {
 
               const formData = new FormData();
               formData.append("file", file);
-              formData.append("id", userId as string);
+              formData.append("id", tempBotId as string);
 
               try {
                 console.log("Sending file to server", formData);
@@ -135,6 +166,8 @@ function FileUploadArea(props: FileUploadAreaProps) {
         // Set the files state with the valid files and the existing files
         handleSetFiles((prevFiles) => [...prevFiles, ...validFiles]);
 
+        updateBot([...files, ...validFiles], tempBotId, user);
+
         // Clear the file input
         if (dropzoneRef.current) {
           (dropzoneRef.current as any).value = undefined;
@@ -150,12 +183,89 @@ function FileUploadArea(props: FileUploadAreaProps) {
 
         setLoading(false);
         console.log("Upload Complete");
+        router.push("/dashboard/my-bots");
       } else {
+        if (props.bot) {
+          setLoading(true);
+          await updateBot(files, botId, user);
+          setLoading(false);
+        }
         console.log("no files selected");
       }
     },
-    [files, handleSetFiles, props.maxFileSizeMB, props.maxNumFiles, userId]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      botId,
+      files,
+      handleSetFiles,
+      props.maxFileSizeMB,
+      props.maxNumFiles,
+      router,
+      user,
+    ]
   );
+
+  async function generateBotId(user: UserProfile) {
+    const res = await fetch("/api/account/generate-bot-id", {
+      method: "POST",
+      body: JSON.stringify({ user }),
+    });
+
+    const data = await res.json();
+    console.log(data);
+    return data?.newBotId;
+  }
+
+  async function updateBot(
+    list: Array<FileLite>,
+    botId: string,
+    user: UserProfile
+  ) {
+    if (!user) {
+      console.log("User not logged in");
+      return;
+    } else if (!botNameRef.current?.value) {
+      console.log("Bot name is not set");
+      return;
+    }
+    if (props.bot.docs) {
+      list = [...props.bot.docs, ...list];
+    }
+    const validFiles = compact(list);
+    if (validFiles.length < 1) {
+      console.log("No files to update");
+      return;
+    }
+    const files = validFiles.map((file) => {
+      return {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      };
+    });
+    // Remove any duplicate files
+    const uniqueFiles = uniqBy(files, "name");
+
+    const res = await fetch("/api/account/bot/update", {
+      method: "POST",
+      body: JSON.stringify({
+        files: uniqueFiles,
+        botId,
+        user,
+        botName: botNameRef.current?.value ?? "Untitled Bot",
+        persona: botDescriptionRef.current?.value,
+        status: "published",
+        webUrl: "",
+      }),
+    });
+
+    const data = await res.json();
+    if (res.status === 200) {
+      console.log("Bot updated", { data });
+    } else {
+      console.log("Error updating bot", { data });
+    }
+  }
 
   const handleDragEnter = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -184,7 +294,35 @@ function FileUploadArea(props: FileUploadAreaProps) {
   );
 
   return (
-    <div className="flex items-center justify-center w-full flex-col gap-4">
+    <div className="flex items-center justify-center w-full flex-col gap-5 max-w-2xl">
+      <div className="flex flex-col gap-2 w-full">
+        <label htmlFor="name" className="font-medium">
+          Name{" "}
+        </label>
+        <Input
+          id="name"
+          placeholder="Enter bot name"
+          required
+          ref={botNameRef}
+        />
+      </div>
+      <div className="flex flex-col gap-1 w-full">
+        <label htmlFor="description" className="font-medium">
+          Description{" "}
+        </label>
+        <Textarea
+          id="description"
+          ref={botDescriptionRef}
+          placeholder="Enter some desc"
+          className="w-full"
+        />
+        <small className="text-gray-500">
+          This description helps chatbot to understand the context and his role.
+          <br />
+          For ex. &quot;You are <em>(Product Name)</em> AI assistant, designed
+          to answer the question about <em>(Product Name)</em>.&quot;
+        </small>
+      </div>
       <label
         htmlFor="dropzone-file"
         className={`flex flex-col shadow items-center justify-center w-full h-36 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 relative ${
@@ -252,12 +390,22 @@ function FileUploadArea(props: FileUploadAreaProps) {
 
       <div className="w-full flex place-content-end">
         <Button
-          disabled={files.length < 1}
+          disabled={isLoading}
           onClick={() => {
             handleFileChange(files as any);
+            // updateBot(files, "df989cb4-c33a-4d9b-821a-ca45a4b85af0", user!);
           }}
         >
-          Train your bot
+          {loading ? (
+            <LoadingText
+              spinnerColor="fill-white"
+              text={props.bot ? "Updating.." : "Creating.."}
+            />
+          ) : props.bot ? (
+            "Update"
+          ) : (
+            "Create"
+          )}
         </Button>
       </div>
     </div>

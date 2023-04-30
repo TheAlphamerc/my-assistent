@@ -16,23 +16,12 @@ import GoBackButton from "@/component/atom/go-back-button";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export default function Z() {
+interface Props {
+  bot: any;
+}
+export default function CreateBot({ bot }: Props) {
   const [files, setFiles] = useState<FileLite[]>([]);
   const { user, error, isLoading } = useUser();
-
-  useEffect(() => {
-    (async () => {
-      const res = await fetch("/api/protected-api");
-
-      const data = await res.json();
-
-      if (res.status === 401) {
-        console.log("You are not authorized to access this API");
-      } else {
-        console.log(data);
-      }
-    })();
-  }, []);
 
   return (
     <div className="flex items-left text-left h-screen flex-col">
@@ -46,8 +35,8 @@ export default function Z() {
           </Button>
         }
       />
-      <div className="flex flex-col items-center max-w-5xl mx-auto m-24 space-y-8 text-gray-800">
-        <div className=" w-full my-8">
+      <div className="flex flex-col items-center max-w-5xl mx-auto  space-y-8 text-gray-800">
+        <div className=" w-full my-4">
           <GoBackButton />
         </div>
         <h1 className="text-4xl">Create Assistant using Assistant AI </h1>
@@ -61,6 +50,7 @@ export default function Z() {
           handleSetFiles={setFiles}
           maxNumFiles={75}
           maxFileSizeMB={30}
+          bot={bot}
         />
 
         <FileViewerList

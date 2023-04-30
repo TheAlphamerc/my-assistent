@@ -12,8 +12,15 @@ import GoBackButton from "@/component/atom/go-back-button";
 
 export default function Assistant() {
   const { user, error, isLoading, checkSession } = useUser();
+  const [isEdit, setIsEdit] = React.useState(false);
+
+  const router = useRouter();
+  const query = router.query as { id: string | undefined };
+  const id = query.id;
 
   if (isLoading) return <div>Loading...</div>;
+
+  if (!id) return <div>Invalid assistant Id</div>;
 
   if (error) return <div>{error.message}</div>;
 
@@ -23,16 +30,27 @@ export default function Assistant() {
     <div className="h-screen flex flex-col gap-6">
       <NavbarLayout
         trailing={
-          <Button variant={"outline"}>
-            <Link href="/api/auth/logout">Logout</Link>
-          </Button>
+          <>
+            {" "}
+            <Button
+              variant={"ghost"}
+              onClick={() => {
+                router.push("/dashboard/create", undefined, { shallow: true });
+              }}
+            >
+              <Link href={`/dashboard/edit/${id}`}>Edit</Link>
+            </Button>
+            <Button variant={"ghost"}>
+              <Link href="/api/auth/logout">Logout</Link>
+            </Button>
+          </>
         }
       />
       <div className=" w-[400px] mx-auto">
         <GoBackButton />
       </div>
       <div className="h-[550px] w-[400px] mx-auto border rounded  overflow-hidden">
-        <Bot id={process.env.NEXT_PUBLIC_PINECONE_NAMESPACE} />
+        <Bot id={id} />
       </div>
     </div>
   );

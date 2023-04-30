@@ -21,6 +21,7 @@ export default async function handler(
 
   const question = req.body.question as string;
   const namespace = req.body.trainedDoc as string;
+  const persona = req.body.persona as string;
   const indexName = 'pensil-ai'
 
   if (!indexName) {
@@ -82,38 +83,48 @@ export default async function handler(
     const messages = [
       {
         role: ChatCompletionRequestMessageRoleEnum.System,
-        content: 'I want you to act as a document that I am having a conversation with. Your name is "AI Assistant"',
-      }, {
-        role: ChatCompletionRequestMessageRoleEnum.System,
-        content: 'You will provide me with answers from the given info. If the answer is not included, say exactly "Hmm, I am not sure." and stop after that'
+        content: persona ?? 'You are helpful AI assistant, designed to answer the question from given context.',
+        // 'You are Pensil AI assistant, designed to answer the question about Pensil community Platform.',
       },
       {
         role: ChatCompletionRequestMessageRoleEnum.System,
-        content: 'Refuse to answer any question not about the context given below.'
+        content: 'Your goal is to provide helpful, accurate information to customers in a friendly and efficient manner from context given below.',
       },
-      //  {
-      //   role: ChatCompletionRequestMessageRoleEnum.System,
-      //   content: 'Your goal is to provide helpful, accurate information to customers in a friendly and efficient manner from context given below. You should be able to quickly understand the nature of their question or issue, and provide the best answer possible.',
-      // },
+      {
+        role: ChatCompletionRequestMessageRoleEnum.System,
+        content: 'You should be able to quickly understand the nature of their question or issue, and provide the best answer possible in markdown format.',
+      },
       {
         role: ChatCompletionRequestMessageRoleEnum.System,
         content: `Context: ${textString}`,
       },
-      // {
-      //   role: ChatCompletionRequestMessageRoleEnum.System,
-      //   content: 'If you cannot answer, or find a relevant file, don\'t makeup answer just simply apologies and tell why can\'t you give answer. ou can also suggest to contact at support@pensil.in',
-      // },
       {
         role: ChatCompletionRequestMessageRoleEnum.System,
-        content: 'Mention the source text file name in the answer.'
+        content: 'If you cannot answer, or find a relevant file, don\'t makeup answer just simply apologies and tell why can\'t you give answer',
       },
+      // {
+      //   role: ChatCompletionRequestMessageRoleEnum.System,
+      //   content: 'Refuse to answer any question that iss not about the given context.'
+      // },
+      //  {
+      //   role: ChatCompletionRequestMessageRoleEnum.System,
+      //   content: 'Your goal is to provide helpful, accurate information to customers in a friendly and efficient manner from context given below. You should be able to quickly understand the nature of their question or issue, and provide the best answer possible.',
+      // },
+      // {
+      //   role: ChatCompletionRequestMessageRoleEnum.System,
+      //   content: 'If you cannot answer, or find a relevant file, don\'t makeup answer just simply apologies and tell why can\'t you give answer. you can also suggest to contact at support@pensil.in',
+      // },
+      // {
+      //   role: ChatCompletionRequestMessageRoleEnum.System,
+      //   content: 'Mention the source text file name in the answer.'
+      // },
       {
         role: ChatCompletionRequestMessageRoleEnum.User,
         content: `Question: ${question} ?`,
       },
       {
         role: ChatCompletionRequestMessageRoleEnum.Assistant,
-        content: `Answer : ${question} ?`,
+        content: `Answer:  ?`,
       }
     ];
     const resp = await openAiCompletion({ messages });

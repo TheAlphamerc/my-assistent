@@ -1,14 +1,16 @@
 import { Transition } from "@headlessui/react";
 import axios from "axios";
-import React, { memo, useCallback, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-
+import { v4 as uuidv4 } from "uuid";
 import { FileLite } from "../types/file";
 import LoadingText from "./LoadingText";
 import BotIcon from "./svg-icon/bot-icon";
 import UserIcon from "./svg-icon/user-icon";
+import { uniqueId } from "lodash";
 
 type Conversation = {
+  id?: string;
   userQuery?: string;
   assistant?: string;
   time?: string;
@@ -19,6 +21,7 @@ type FileQandAAreaProps = {
   label?: string;
   placeholder?: string;
   trainedDoc?: string;
+  bot: any;
 };
 
 function ChatArea(props: FileQandAAreaProps) {
@@ -28,7 +31,6 @@ function ChatArea(props: FileQandAAreaProps) {
   const [answerError, setAnswerError] = useState("");
   const [searchResultsLoading, setSearchResultsLoading] =
     useState<boolean>(false);
-  console.log("props", { id: process.env.NEXT_PUBLIC_PINECONE_NAMESPACE });
 
   const [conversation, setConversation] = useState<Array<Conversation>>([]);
 
@@ -52,6 +54,7 @@ function ChatArea(props: FileQandAAreaProps) {
     list.push({
       userQuery: question,
       time: time,
+      id: uuidv4(),
     });
     setConversation(list);
     window.scroll({
@@ -62,10 +65,12 @@ function ChatArea(props: FileQandAAreaProps) {
     setAnswerError("");
 
     try {
-      const answerResponse = await axios.post(`/api/get-answer`, {
+      const payload = {
         question,
         trainedDoc: props.trainedDoc,
-      });
+        persona: props.bot.persona,
+      };
+      const answerResponse = await axios.post(`/api/get-answer`, payload);
 
       if (answerResponse.status === 200) {
         const answer = answerResponse.data.answer;
@@ -74,6 +79,7 @@ function ChatArea(props: FileQandAAreaProps) {
           userQuery: question,
           assistant: answer,
           time: time,
+          id: uuidv4(),
         };
 
         setConversation(list);
@@ -91,7 +97,7 @@ function ChatArea(props: FileQandAAreaProps) {
     }
 
     setSearchResultsLoading(false);
-  }, [conversation, props.trainedDoc, searchResultsLoading]);
+  }, [conversation, props.trainedDoc, searchResultsLoading, props.bot]);
 
   const handleEnterInSearchBar = useCallback(
     async (event: React.SyntheticEvent) => {
@@ -101,6 +107,27 @@ function ChatArea(props: FileQandAAreaProps) {
     },
     [handleSearch]
   );
+
+  useEffect(() => {
+    if (conversation.length < 1) {
+      return;
+    }
+    const conf = conversation[conversation.length - 1];
+    if (!conf.id) return;
+    const element = document.getElementById(conf.id);
+    if (element) {
+      element.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+        inline: "nearest",
+      });
+    } else {
+    }
+  }, [conversation, conversation.length]);
+
+  if (!props.bot) {
+    return <>Unable to load boat</>;
+  }
 
   return (
     <div className="QAArea flex flex-col h-full w-full text-gray-800   rounded-lg">
@@ -112,7 +139,7 @@ function ChatArea(props: FileQandAAreaProps) {
       <div className="flex-1 overflow-y-scroll">
         <div
           ref={listRef}
-          className="flex flex-col gap-6 h-full overflow-y-auto p-4 prose prose-sm pb-8"
+          className="flex flex-col gap-6 h-full overflow-y-auto p-4 prose prose-sm pb-8 max-w-full"
         >
           {answerError && (
             <div className="text-red-400 p-4 border  mt-4 border-red-300 shadow bg-white rounded">
@@ -192,6 +219,7 @@ function SendButton({
 function Assistant({ conversation }: { conversation: Conversation }) {
   return (
     <TransitionWrapper
+      id={conversation.id}
       show={
         conversation.assistant != null && conversation.assistant != undefined
       }
@@ -203,9 +231,9 @@ function Assistant({ conversation }: { conversation: Conversation }) {
         >
           <BotIcon />
         </div>
-        <span className="">
+        <span className="flex-1">
           <ReactMarkdown
-            className="Markdown pose pose-sm list-disc list-inside"
+            className="Markdown pose pose-sm list-disc list-inside max-w-full"
             linkTarget="_blank"
           >
             {conversation.assistant ?? ""}
@@ -219,6 +247,7 @@ function Assistant({ conversation }: { conversation: Conversation }) {
 function User({ conversation }: { conversation: Conversation }) {
   return (
     <TransitionWrapper
+      id={conversation.id}
       show={
         conversation.userQuery != null && conversation.userQuery != undefined
       }
@@ -238,12 +267,15 @@ function User({ conversation }: { conversation: Conversation }) {
 function TransitionWrapper({
   children,
   show,
+  id,
 }: {
   children: React.ReactNode;
   show: boolean;
+  id?: string;
 }) {
   return (
     <Transition
+      id={id}
       show={show}
       enter="transition duration-600 ease-out"
       enterFrom="transform opacity-0"
