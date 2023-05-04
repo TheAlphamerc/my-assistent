@@ -25,24 +25,25 @@ export default async function handler(
   const indexName = 'pensil-ai'
 
   if (!indexName) {
-    res.status(400).json({ error: "index name is not available" });
-    return;
+    return res.status(400).json({ error: "index name is not available" });
   } else if (!namespace) {
-    res.status(400).json({ error: "namespace is not available" });
-    return;
+    return res.status(400).json({ error: "namespace is not available" });
+
   }
 
   if (!question) {
-    res.status(400).json({ error: "question must be a string" });
-    return;
+    return res.status(400).json({ error: "question must be a string" });
   }
 
   console.log({ question, namespace, indexName });
 
 
-  const client = await pineconeClient();
   try {
+    log("\n🚥 Initiate Pinecone client");
+    const client = await pineconeClient();
+    log("\n🚥 Pinecone client initiated");
     const vectorOperationsApi = client.Index(indexName);
+
     const { meanEmbedding } = await createEmbeddings({
       text: question
     });
@@ -50,7 +51,7 @@ export default async function handler(
     const response = await vectorOperationsApi.query({
       queryRequest: {
         namespace: namespace,
-        topK: 10,
+        topK: 50,
         includeMetadata: true,
         includeValues: false,
         vector: meanEmbedding
@@ -58,8 +59,9 @@ export default async function handler(
     });
     // console.log("\nPinecone response: ", response);
     var textString = '';
+    var matches = 0;
+
     if (response.matches && response.matches.length > 0) {
-      console.log("\n🚥 Pinecone matches length: ", response.matches.length);
       for (let i = 0; i < response.matches.length; i++) {
         const result = response.matches[i]
         const score = result.score ?? 0
@@ -67,41 +69,42 @@ export default async function handler(
         var filename = result?.metadata["filename"] ?? '';
         const fileText = '';
 
-        const file = `###\nFile:"${filename}\n`
+        const file = `File:"${filename}\n`
         // const file_string = `###\n\"${filename}\"\n\n`;
         if (score < COSINE_SIM_THRESHOLD && i > 0)
           break
-        console.log("\n🚥 Match: ", i, ': ', file);
+        // log("🚥 Match: ", i, ': ', file);
         textString += file
+        matches += 1;
       }
     } else {
-      console.log("\n🚥 No matches found");
-      res.status(200).json({ answer: "Sorry, I don't have an answer for that." });
-      return;
+      log("\n🚥 No matches found");
+      return res.status(200).json({ answer: "Sorry, I don't have an answer for that." });
     }
 
+    log("\n🚥 Filtered Pinecone matches length: ", matches);
     const messages = [
       {
         role: ChatCompletionRequestMessageRoleEnum.System,
         content: persona ?? 'You are helpful AI assistant, designed to answer the question from given context.',
         // 'You are Pensil AI assistant, designed to answer the question about Pensil community Platform.',
       },
+      // {
+      //   role: ChatCompletionRequestMessageRoleEnum.System,
+      //   content: 'Your goal is to provide helpful, accurate information to customers in a friendly and efficient manner from context given below.',
+      // },
       {
         role: ChatCompletionRequestMessageRoleEnum.System,
-        content: 'Your goal is to provide helpful, accurate information to customers in a friendly and efficient manner from context given below.',
-      },
-      {
-        role: ChatCompletionRequestMessageRoleEnum.System,
-        content: 'You should be able to quickly understand the nature of their question or issue, and provide the best answer possible in markdown format.',
+        content: 'You should be able to quickly understand the nature of their question, and provide the best answer possible in markdown format.',
       },
       {
         role: ChatCompletionRequestMessageRoleEnum.System,
         content: `Context: ${textString}`,
       },
-      {
-        role: ChatCompletionRequestMessageRoleEnum.System,
-        content: 'If you cannot answer, or find a relevant file, don\'t makeup answer just simply apologies and tell why can\'t you give answer',
-      },
+      // {
+      //   role: ChatCompletionRequestMessageRoleEnum.System,
+      //   content: 'If you cannot answer, or find a relevant file, don\'t makeup answer just simply apologies and tell why can\'t you give answer',
+      // },
       // {
       //   role: ChatCompletionRequestMessageRoleEnum.System,
       //   content: 'Refuse to answer any question that iss not about the given context.'
@@ -127,12 +130,32 @@ export default async function handler(
         content: `Answer:  ?`,
       }
     ];
+
+    // log("\n🚥 Request: ", messages);
     const resp = await openAiCompletion({ messages });
 
-
+    log("\n🚥 Response: ");
     res.status(200).json({ answer: resp.message, extra: resp.usage })
   } catch (error) {
-    console.log("error", error);
-    res.status(500).json({ extra: error })
+    log("error", JSON.parse(JSON.stringify(error)));
+    res.status(500).json({ extra: JSON.parse(JSON.stringify(error)) })
   }
+}
+
+
+/**
+ * Function to log with timestamp
+ * @param {string} message
+ * @returns {void}
+ */
+function log(message?: any, ...optionalParams: any[]): void {
+  console.log(`${new Date().toLocaleTimeString(
+    'en-US',
+    {
+      hour12: true,
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric'
+    }
+  )} - ${message}`, ...optionalParams);
 }

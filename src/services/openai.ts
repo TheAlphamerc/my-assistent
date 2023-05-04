@@ -143,7 +143,7 @@ type OpenAICompletionOptions = Partial<CreateCompletionRequest> & {
 export async function openAiCompletion({
   messages,
   fallback,
-  max_tokens = 800,
+  max_tokens = 1000,
   temperature = 0,
   model = "gpt-3.5-turbo", // use gpt-4 for better results
 }: OpenAICompletionOptions) {
